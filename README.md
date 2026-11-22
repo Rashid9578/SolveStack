@@ -55,6 +55,20 @@ Account sessions expire after 30 minutes of inactivity. Session cookies are `Htt
 
 Keep the session cookie when fetching the CSRF token and submitting the `POST` request. Fetch a fresh token after a session changes. Duplicate registration returns HTTP 409. Invalid sign-in credentials return HTTP 401.
 
+## Tracking API
+
+Tracking requests use the active guest or account session. Send a token from `/api/session/csrf` with each `PUT` or `DELETE` request. The server identifies the tracker from the session cookie.
+
+| Method | Path | Response |
+| --- | --- | --- |
+| GET | `/api/me/progress` | Overall progress and progress for each topic in catalog order |
+| GET | `/api/me/topics/{slug}` | Topic and overall progress, plus ordered problems with a `completed` flag |
+| PUT | `/api/me/completions/{problemId}` | Marks a problem done and returns its ID, completion state, and updated overall progress |
+| DELETE | `/api/me/completions/{problemId}` | Undoes completion and returns the same response shape |
+| DELETE | `/api/me/completions` | Restarts the current tracker and returns HTTP 204 |
+
+Each progress object has `completedProblems`, `totalProblems`, `percentage`, and `complete`. Percentages round to whole numbers. The overall `complete` flag becomes true after the last problem and clears after an undo or restart. Repeat requests to mark, undo, or restart are safe. An unknown topic or problem returns HTTP 404.
+
 ## Checks
 
-Run `mvn -f backend/pom.xml test` for the catalog API tests and `npm run build` from `frontend/` for the production frontend build. To include the catalog and session integration tests, point the database variables at a dedicated test database and set `SOLVESTACK_POSTGRES_TEST=true` before running Maven. Flyway applies the same schema and seed used by the application.
+Run `mvn -f backend/pom.xml test` for the catalog API tests and `npm run build` from `frontend/` for the production frontend build. To include catalog, session, and tracking integration tests, point the database variables at a dedicated test database and set `SOLVESTACK_POSTGRES_TEST=true` before running Maven. Flyway applies the same schema and seed used by the application.

@@ -46,6 +46,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/session/guest", "/api/session/register",
                                 "/api/session/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/session/logout").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/me/progress", "/api/me/topics/*").hasAnyRole("GUEST", "ACCOUNT")
+                        .requestMatchers(HttpMethod.HEAD, "/api/me/progress", "/api/me/topics/*").hasAnyRole("GUEST", "ACCOUNT")
+                        .requestMatchers(HttpMethod.PUT, "/api/me/completions/*").hasAnyRole("GUEST", "ACCOUNT")
+                        .requestMatchers(HttpMethod.DELETE, "/api/me/completions", "/api/me/completions/*")
+                                .hasAnyRole("GUEST", "ACCOUNT")
                         .anyRequest().denyAll())
                 .build();
     }

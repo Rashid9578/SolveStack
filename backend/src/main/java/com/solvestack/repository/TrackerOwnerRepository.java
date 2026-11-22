@@ -16,5 +16,9 @@ public interface TrackerOwnerRepository extends JpaRepository<TrackerOwner, UUID
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select owner from TrackerOwner owner where owner.id = :id")
-    Optional<TrackerOwner> findForUpgrade(UUID id);
+    Optional<TrackerOwner> findForUpdate(UUID id);
+
+    @Lock(LockModeType.PESSIMISTIC_READ)
+    @Query("select owner from TrackerOwner owner where owner.id = :id")
+    Optional<TrackerOwner> findForShare(UUID id);
 }

@@ -4,9 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -28,7 +26,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @EnabledIfEnvironmentVariable(named = "SOLVESTACK_POSTGRES_TEST", matches = "true")
 class SessionPostgresTest {
     private static final String PASSWORD = "sample-test-passphrase";
-    private static final String COOKIE_NAME = "SOLVESTACK_SESSION=";
 
     @LocalServerPort
     private int port;
@@ -46,7 +43,7 @@ class SessionPostgresTest {
 
     @Test
     void upgradesGuestInPlaceAndInvalidatesCookiesOnUpgradeAndLogout() throws Exception {
-        Browser guest = new Browser();
+        ApiBrowser guest = new ApiBrowser(http, json, port);
         var anonymous = guest.get("/api/session");
         assertThat(read(anonymous).path("kind").asText()).isEqualTo("ANONYMOUS");
         assertThat(anonymous.headers().firstValue("Set-Cookie")).isEmpty();
@@ -66,7 +63,7 @@ class SessionPostgresTest {
         assertThat(idleTimeout(guest)).isEqualTo(31_536_000);
         assertThat(guest.send(guest.post("/api/session/guest", null, oldCsrf)).statusCode()).isEqualTo(403);
 
-        Browser other = createGuest();
+        ApiBrowser other = createGuest();
         UUID guestOwner = ownerOf(guest);
         UUID otherOwner = ownerOf(other);
         assertThat(otherOwner).isNotEqualTo(guestOwner);
@@ -124,7 +121,7 @@ class SessionPostgresTest {
 
     @Test
     void rejectsInvalidCredentialsWithoutIncludingSubmittedValues() throws Exception {
-        Browser browser = createGuest();
+        ApiBrowser browser = createGuest();
         String tooLong = "é".repeat(37);
         var invalid = browser.mutate("/api/session/register", Map.of("email", "not-an-email", "password", tooLong));
 
@@ -137,15 +134,15 @@ class SessionPostgresTest {
 
     @Test
     void upgradesOneGuestOnlyOnceWhenRequestsOverlap() throws Exception {
-        Browser guest = createGuest();
+        ApiBrowser guest = createGuest();
         UUID owner = ownerOf(guest);
         JsonNode csrf = guest.csrf();
         String firstEmail = UUID.randomUUID() + "@example.net";
         String secondEmail = UUID.randomUUID() + "@example.net";
-        var first = http.sendAsync(guest.post("/api/session/register",
-                Map.of("email", firstEmail, "password", PASSWORD), csrf), HttpResponse.BodyHandlers.ofString());
-        var second = http.sendAsync(guest.post("/api/session/register",
-                Map.of("email", secondEmail, "password", PASSWORD), csrf), HttpResponse.BodyHandlers.ofString());
+        var first = guest.sendAsync(guest.post("/api/session/register",
+                Map.of("email", firstEmail, "password", PASSWORD), csrf));
+        var second = guest.sendAsync(guest.post("/api/session/register",
+                Map.of("email", secondEmail, "password", PASSWORD), csrf));
 
         var firstResponse = first.get(20, TimeUnit.SECONDS);
         var secondResponse = second.get(20, TimeUnit.SECONDS);
@@ -160,8 +157,8 @@ class SessionPostgresTest {
         assertThat(kindFor(guest.cookie)).isEqualTo("ANONYMOUS");
     }
 
-    private Browser createGuest() throws Exception {
-        Browser browser = new Browser();
+    private ApiBrowser createGuest() throws Exception {
+        ApiBrowser browser = new ApiBrowser(http, json, port);
         assertThat(browser.mutate("/api/session/guest", null).statusCode()).isEqualTo(201);
         return browser;
     }
@@ -171,7 +168,7 @@ class SessionPostgresTest {
     }
 
     private String kindFor(String cookie) throws Exception {
-        Browser browser = new Browser();
+        ApiBrowser browser = new ApiBrowser(http, json, port);
         browser.cookie = cookie;
         return read(browser.get("/api/session")).path("kind").asText();
     }
@@ -180,19 +177,19 @@ class SessionPostgresTest {
         return response.headers().firstValue("Set-Cookie").orElseThrow();
     }
 
-    private UUID ownerOf(Browser browser) {
+    private UUID ownerOf(ApiBrowser browser) {
         String principal = database.queryForObject(
                 "SELECT principal_name FROM spring_session WHERE session_id = ?", String.class, sessionId(browser));
         return UUID.fromString(principal);
     }
 
-    private Integer idleTimeout(Browser browser) {
+    private Integer idleTimeout(ApiBrowser browser) {
         return database.queryForObject("SELECT max_inactive_interval FROM spring_session WHERE session_id = ?",
                 Integer.class, sessionId(browser));
     }
 
-    private static String sessionId(Browser browser) {
-        byte[] decoded = Base64.getDecoder().decode(browser.cookie.substring(COOKIE_NAME.length()));
+    private static String sessionId(ApiBrowser browser) {
+        byte[] decoded = Base64.getDecoder().decode(browser.cookie.substring(ApiBrowser.COOKIE_NAME.length()));
         return new String(decoded, StandardCharsets.UTF_8);
     }
 
@@ -201,49 +198,4 @@ class SessionPostgresTest {
                 "SELECT problem_id FROM problem_completions WHERE owner_id = ?", String.class, owner);
     }
 
-    private class Browser {
-        private String cookie;
-
-        HttpResponse<String> get(String path) throws Exception {
-            return send(request(path).GET().build());
-        }
-
-        JsonNode csrf() throws Exception {
-            var response = get("/api/session/csrf");
-            assertThat(response.statusCode()).isEqualTo(200);
-            assertThat(response.headers().firstValue("Cache-Control")).contains("no-store");
-            return read(response);
-        }
-
-        HttpResponse<String> mutate(String path, Map<String, String> body) throws Exception {
-            return send(post(path, body, csrf()));
-        }
-
-        HttpRequest post(String path, Map<String, String> body, JsonNode csrf) throws Exception {
-            var request = request(path);
-            if (csrf != null) {
-                request.header(csrf.path("headerName").asText(), csrf.path("token").asText());
-            }
-            if (body == null) {
-                return request.POST(HttpRequest.BodyPublishers.noBody()).build();
-            }
-            return request.header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body))).build();
-        }
-
-        HttpResponse<String> send(HttpRequest request) throws Exception {
-            var response = http.send(request, HttpResponse.BodyHandlers.ofString());
-            response.headers().allValues("Set-Cookie").stream().filter(header -> header.startsWith(COOKIE_NAME))
-                    .forEach(header -> cookie = header.contains("Max-Age=0") ? null : header.split(";", 2)[0]);
-            return response;
-        }
-
-        private HttpRequest.Builder request(String path) {
-            var request = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path));
-            if (cookie != null) {
-                request.header("Cookie", cookie);
-            }
-            return request;
-        }
-    }
 }

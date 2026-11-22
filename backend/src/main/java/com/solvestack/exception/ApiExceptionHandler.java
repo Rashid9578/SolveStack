@@ -6,7 +6,9 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -22,13 +24,20 @@ public class ApiExceptionHandler {
         return problem;
     }
 
+    @ExceptionHandler(ProblemNotFoundException.class)
+    ProblemDetail handleProblemNotFound(ProblemNotFoundException error) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, error.getMessage());
+        problem.setTitle("Problem not found");
+        return problem;
+    }
+
     @ExceptionHandler(AccountConflictException.class)
     ProblemDetail handleAccountConflict(AccountConflictException error) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, error.getMessage());
     }
 
-    @ExceptionHandler(BadCredentialsException.class)
-    ProblemDetail handleBadCredentials(BadCredentialsException error) {
+    @ExceptionHandler({BadCredentialsException.class, AuthenticationCredentialsNotFoundException.class})
+    ProblemDetail handleAuthenticationError(AuthenticationException error) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, error.getMessage());
     }
 

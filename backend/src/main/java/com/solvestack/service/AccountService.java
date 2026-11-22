@@ -68,7 +68,7 @@ public class AccountService {
     }
 
     private TrackerOwner guestForUpgrade(UUID ownerId) {
-        return owners.findForUpgrade(ownerId)
+        return owners.findForUpdate(ownerId)
                 .filter(owner -> owner.getKind() == TrackerKind.GUEST)
                 .orElseThrow(() -> new AccountConflictException("Your guest session changed. Reload the page and try again."));
     }

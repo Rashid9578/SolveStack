@@ -8,6 +8,10 @@ import org.springframework.data.repository.Repository;
 import org.springframework.data.repository.query.Param;
 
 public interface ProblemRepository extends Repository<Problem, String> {
+    boolean existsById(String id);
+
+    long count();
+
     @Query("""
             select new com.solvestack.dto.ProblemResponse(p.id, p.title, p.externalUrl, p.position)
             from Problem p
