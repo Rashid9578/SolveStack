@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const api = axios.create({ baseURL: '/api', timeout: 10000 });
+import { api } from './api.js';
 
 export async function listTopics(signal) {
   const { data } = await api.get('/topics', { signal });

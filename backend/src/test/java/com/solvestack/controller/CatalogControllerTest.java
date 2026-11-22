@@ -13,6 +13,7 @@ import com.solvestack.dto.ProblemResponse;
 import com.solvestack.dto.TopicResponse;
 import com.solvestack.dto.TopicSummary;
 import com.solvestack.exception.TopicNotFoundException;
+import com.solvestack.repository.TrackerOwnerRepository;
 import com.solvestack.service.CatalogService;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,9 @@ class CatalogControllerTest {
 
     @MockitoBean
     private CatalogService catalog;
+
+    @MockitoBean
+    private TrackerOwnerRepository owners;
 
     @Test
     void servesPublicCatalogAndTopicAsJson() throws Exception {
@@ -65,6 +69,6 @@ class CatalogControllerTest {
     @Test
     void rejectsCatalogWritesAndUnconfiguredRoutes() throws Exception {
         mvc.perform(post("/api/topics")).andExpect(status().isForbidden());
-        mvc.perform(get("/api/me/completions")).andExpect(status().isForbidden());
+        mvc.perform(get("/api/me/completions")).andExpect(status().isUnauthorized());
     }
 }

@@ -5,6 +5,9 @@ spring:
     url: ${SOLVESTACK_DB_URL}
     username: ${SOLVESTACK_DB_USERNAME}
     password: ${SOLVESTACK_DB_PASSWORD}
+    hikari:
+      data-source-properties:
+        "[logServerErrorDetail]": 'false'
   jpa:
     open-in-view: false
     hibernate:
@@ -12,6 +15,13 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  session:
+    timeout: 10m
+    jdbc:
+      initialize-schema: never
+solvestack:
+  session:
+    cookie-secure: ${SOLVESTACK_SESSION_COOKIE_SECURE:true}
 server:
   error:
     include-message: never

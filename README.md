@@ -13,6 +13,7 @@ $env:SOLVESTACK_DB_URL = 'jdbc:postgresql://localhost:5432/solvestack'
 $databaseCredential = Get-Credential -UserName 'solvestack' -Message 'Enter the PostgreSQL password'
 $env:SOLVESTACK_DB_USERNAME = $databaseCredential.UserName
 $env:SOLVESTACK_DB_PASSWORD = $databaseCredential.GetNetworkCredential().Password
+$env:SOLVESTACK_SESSION_COOKIE_SECURE = 'false'
 mvn -f backend/pom.xml spring-boot:run
 ```
 
@@ -26,6 +27,8 @@ npm run dev
 
 Open the URL printed by Vite. In development, Vite forwards `/api` requests to Spring Boot at `http://127.0.0.1:8080`. Set `API_PROXY_TARGET` in the frontend terminal to change that address.
 
+Use `SOLVESTACK_SESSION_COOKIE_SECURE=false` for local HTTP development. The default is `true` for HTTPS deployments.
+
 ## Catalog API
 
 | Method | Path | Response |
@@ -35,6 +38,23 @@ Open the URL printed by Vite. In development, Vite forwards `/api` requests to S
 
 An unknown topic returns HTTP 404 with an `application/problem+json` body.
 
+## Guest access and accounts
+
+The frontend starts or resumes a guest session when you open SolveStack. A guest cookie lasts up to one year. Creating an account upgrades that guest tracker in place, so any progress belongs to the new account. Signing in opens the existing account's tracker. Signing out ends the current session and opens a fresh guest tracker.
+
+Account sessions expire after 30 minutes of inactivity. Session cookies are `HttpOnly` and `SameSite=Lax`. Passwords use BCrypt. Registration requires at least 12 characters and accepts up to 72 UTF-8 bytes.
+
+| Method | Path | Response |
+| --- | --- | --- |
+| GET | `/api/session` | `ANONYMOUS`, `GUEST`, or `ACCOUNT`, with the email for an account |
+| GET | `/api/session/csrf` | The header name and CSRF token for the next session request |
+| POST | `/api/session/guest` | Starts a guest session or returns the current session |
+| POST | `/api/session/register` | Registers with an `email` and `password` and signs in |
+| POST | `/api/session/login` | Signs in with an `email` and `password` |
+| POST | `/api/session/logout` | Invalidates the current session and returns HTTP 204 |
+
+Keep the session cookie when fetching the CSRF token and submitting the `POST` request. Fetch a fresh token after a session changes. Duplicate registration returns HTTP 409. Invalid sign-in credentials return HTTP 401.
+
 ## Checks
 
-Run `mvn -f backend/pom.xml test` for the catalog API tests and `npm run build` from `frontend/` for the production frontend build. To include the PostgreSQL integration test, point the database variables at a dedicated test database and set `SOLVESTACK_POSTGRES_TEST=true` before running Maven. Flyway applies the same schema and seed used by the application.
+Run `mvn -f backend/pom.xml test` for the catalog API tests and `npm run build` from `frontend/` for the production frontend build. To include the catalog and session integration tests, point the database variables at a dedicated test database and set `SOLVESTACK_POSTGRES_TEST=true` before running Maven. Flyway applies the same schema and seed used by the application.
