@@ -25,6 +25,7 @@ solvestack:
   session:
     cookie-secure: ${SOLVESTACK_SESSION_COOKIE_SECURE:true}
 server:
+  port: ${PORT:8080}
   shutdown: graceful
   error:
     include-message: never
