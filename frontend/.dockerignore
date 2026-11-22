@@ -1,5 +1,12 @@
 node_modules
 dist
 test
-.env*
+**/.env*
+**/*.env
+**/*.env.*
+**/.secrets
+**/*.key
+**/*.pem
+**/*.p12
+**/*.pfx
 *.log

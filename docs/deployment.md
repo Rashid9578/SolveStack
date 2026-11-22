@@ -93,6 +93,17 @@ For HTTPS, set the hostname in both sections of `ingress.yaml`, configure the de
 
 If your cluster uses a custom DNS suffix, update `SOLVESTACK_API_UPSTREAM` in `config.yaml` to use the backend Service's fully qualified name.
 
+## Public deployment checks
+
+- Build versioned images and publish them to a registry your cluster can pull from. Set the deployment image references to those versions or digests. Confirm the target context with `kubectl config current-context` and run `kubectl apply --dry-run=server -k deployment/kubernetes` before applying changes.
+- Review dependency advisories and scan the release images before public rollout.
+- Serve the frontend and `/api/` from the same HTTPS origin. Keep secure session cookies enabled, redirect HTTP to HTTPS at the ingress, and verify the certificate, session cookie flags, and guest flow against the real hostname. The Compose setup and HTTP port-forward are for local testing.
+- Configure request limits for sign-in, registration, and guest-session creation at the ingress. Use cluster network policies to limit access to the API and PostgreSQL to their intended clients.
+- Configure verified database TLS for production, including trusted CA material, a matching hostname, and `sslmode=verify-full` in `SOLVESTACK_DB_URL`. The bundled PostgreSQL service does not configure TLS. If you use a managed database, configure its credentials and URL before rolling out the API.
+- Enable scheduled PostgreSQL backups and verify restoration. Monitor resource usage and configure recovery procedures for the single PostgreSQL replica if you use the bundled database.
+
+Run `node deployment/smoke.mjs https://YOUR-HOSTNAME` after deployment.
+
 ## Environment and probes
 
 | Setting | Purpose |
