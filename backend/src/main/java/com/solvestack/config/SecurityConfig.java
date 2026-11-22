@@ -1,5 +1,6 @@
 package com.solvestack.config;
 
+import org.springframework.security.config.Customizer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.solvestack.repository.TrackerOwnerRepository;
 import com.solvestack.security.GuestSessionFilter;
@@ -29,6 +30,7 @@ public class SecurityConfig {
     SecurityFilterChain filterChain(HttpSecurity http, SecurityContextRepository contexts,
             TrackerOwnerRepository owners, ObjectMapper json) throws Exception {
         return http
+                .cors(Customizer.withDefaults())
                 .securityContext(context -> context.securityContextRepository(contexts))
                 .addFilterAfter(new GuestSessionFilter(owners), SecurityContextHolderFilter.class)
                 .requestCache(AbstractHttpConfigurer::disable)

@@ -22,7 +22,10 @@ public class GuestSessionFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
-        return path.equals("/api/topics") || path.startsWith("/api/topics/");
+        return path.equals("/readyz")
+            || path.equals("/livez")
+            || path.equals("/api/topics")
+            || path.startsWith("/api/topics/");
     }
 
     @Override
