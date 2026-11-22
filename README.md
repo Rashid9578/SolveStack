@@ -2,6 +2,8 @@
 
 SolveStack is a data structures and algorithms practice tracker. The catalog has 100 problems across 12 topics, with links to the original practice sites.
 
+Open a topic from the dashboard, follow a problem link, and mark it done when you finish. Marked problems update the topic and overall totals, and you can undo any completion. Finishing the last problem opens the completion screen, where you can restart the tracker.
+
 ## Local setup
 
 Install Java 21 or later, Maven 3.6.3 or later, Node.js 20.19 or later in the 20.x line or Node.js 22.12 or later, and PostgreSQL. Create a PostgreSQL database and a database role for SolveStack. The role needs permission to create and update objects in the application's schema so Flyway can apply migrations.
@@ -71,4 +73,6 @@ Each progress object has `completedProblems`, `totalProblems`, `percentage`, and
 
 ## Checks
 
-Run `mvn -f backend/pom.xml test` for the catalog API tests and `npm run build` from `frontend/` for the production frontend build. To include catalog, session, and tracking integration tests, point the database variables at a dedicated test database and set `SOLVESTACK_POSTGRES_TEST=true` before running Maven. Flyway applies the same schema and seed used by the application.
+Run `mvn -f backend/pom.xml test` for the catalog API tests. To include catalog, session, and tracking integration tests, point the database variables at a dedicated test database and set `SOLVESTACK_POSTGRES_TEST=true` before running Maven. Flyway applies the same schema and seed used by the application.
+
+Run `npm test` from `frontend/` to build the production bundle and run the React workflow tests. These tests use a local API fixture and require no database.

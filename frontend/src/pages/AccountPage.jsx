@@ -40,7 +40,7 @@ export function AccountPage({ mode }) {
   const errors = problem.errors || {};
   return (
     <section className="panel account-panel">
-      <Link className="back-link" to="/">← Back to catalog</Link>
+      <Link className="back-link" to="/">← Back to dashboard</Link>
       <h1>{label}</h1>
       <p>{isRegistration ? 'Keep your guest tracker and use it across browsers.' : 'Open your SolveStack tracker.'}</p>
       <form className="account-form" onSubmit={handleSubmit}>

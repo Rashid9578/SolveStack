@@ -1,11 +1,7 @@
-import { api } from './api.js';
+import { api, requestWithCsrf } from './api.js';
 
-async function postSession(path, body) {
-  const { data: csrf } = await api.get('/session/csrf');
-  const { data } = await api.post('/session/' + path, body, {
-    headers: { [csrf.headerName]: csrf.token },
-  });
-  return data;
+function postSession(path, data) {
+  return requestWithCsrf('POST', '/session/' + path, { data });
 }
 
 let bootstrap;
