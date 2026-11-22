@@ -1,0 +1,24 @@
+package com.solvestack.config;
+
+import jakarta.servlet.DispatcherType;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+public class SecurityConfig {
+    @Bean
+    SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        return http
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/topics", "/api/topics/*").permitAll()
+                        .requestMatchers(HttpMethod.HEAD, "/api/topics", "/api/topics/*").permitAll()
+                        .anyRequest().denyAll())
+                .build();
+    }
+}

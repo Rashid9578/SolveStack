@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: SolveStack
+  datasource:
+    url: ${SOLVESTACK_DB_URL}
+    username: ${SOLVESTACK_DB_USERNAME}
+    password: ${SOLVESTACK_DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  mvc:
+    problemdetails:
+      enabled: true
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
