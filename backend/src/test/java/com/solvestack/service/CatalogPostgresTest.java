@@ -2,6 +2,7 @@ package com.solvestack.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.solvestack.dto.CatalogResponse;
 import com.solvestack.dto.ProblemResponse;
 import com.solvestack.dto.TopicSummary;
@@ -23,6 +24,18 @@ class CatalogPostgresTest {
 
     @Autowired
     private TestRestTemplate http;
+
+    @Test
+    void exposesOnlyTheDeploymentHealthPaths() {
+        for (String path : List.of("/livez", "/readyz")) {
+            var response = http.getForEntity(path, JsonNode.class);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody().path("status").asText()).isEqualTo("UP");
+            assertThat(response.getBody().has("components")).isFalse();
+        }
+        assertThat(http.getForEntity("/actuator/health", JsonNode.class).getStatusCode())
+                .isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
 
     @Test
     void migratesAndReadsTheOrderedCatalog() {

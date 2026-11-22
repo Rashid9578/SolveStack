@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: solvestack-config
+data:
+  POSTGRES_DB: solvestack
+  SOLVESTACK_DB_URL: jdbc:postgresql://postgres:5432/solvestack
+  SOLVESTACK_DB_USERNAME: solvestack
+  SOLVESTACK_SESSION_COOKIE_SECURE: "true"
+  SOLVESTACK_API_UPSTREAM: backend.solvestack.svc.cluster.local:8080

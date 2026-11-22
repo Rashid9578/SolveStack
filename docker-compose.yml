@@ -1,0 +1,83 @@
+name: solvestack
+
+services:
+  frontend:
+    image: solvestack/frontend:0.1.0
+    build: ./frontend
+    ports:
+      - "127.0.0.1:${SOLVESTACK_HTTP_PORT:-3000}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks: [app]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    image: solvestack/backend:0.1.0
+    build: ./backend
+    environment:
+      SOLVESTACK_DB_URL: jdbc:postgresql://postgres:5432/solvestack
+      SOLVESTACK_DB_USERNAME: solvestack
+      SOLVESTACK_SESSION_COOKIE_SECURE: "false"
+      SPRING_CONFIG_IMPORT: configtree:/run/secrets/
+    secrets:
+      - source: app-password
+        target: SOLVESTACK_DB_PASSWORD
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [app, database]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    stop_grace_period: 40s
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "--output", "/dev/null", "http://127.0.0.1:8080/readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 45s
+
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: solvestack
+      POSTGRES_PASSWORD_FILE: /run/secrets/POSTGRES_ADMIN_PASSWORD
+      SOLVESTACK_DB_USERNAME: solvestack
+      SOLVESTACK_DB_PASSWORD_FILE: /run/secrets/SOLVESTACK_DB_PASSWORD
+      PGDATA: /var/lib/postgresql/data/pgdata
+    secrets:
+      - source: admin-password
+        target: POSTGRES_ADMIN_PASSWORD
+      - source: app-password
+        target: SOLVESTACK_DB_PASSWORD
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./deployment/kubernetes/postgres-init.sh:/docker-entrypoint-initdb.d/10-solvestack.sh:ro
+    networks: [database]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+
+networks:
+  app:
+  database:
+    internal: true
+
+volumes:
+  postgres-data:
+
+secrets:
+  admin-password:
+    file: ${SOLVESTACK_DB_ADMIN_PASSWORD_FILE:-./.secrets/postgres_admin_password}
+  app-password:
+    file: ${SOLVESTACK_DB_PASSWORD_FILE:-./.secrets/postgres_password}

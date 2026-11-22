@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+spec:
+  selector:
+    app: solvestack-backend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: solvestack-backend
+  template:
+    metadata:
+      labels:
+        app: solvestack-backend
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 40
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:17-bookworm
+          command:
+            - sh
+            - -ec
+            - until pg_isready -h postgres -p 5432 -U postgres -d postgres -t 2; do sleep 2; done
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+      containers:
+        - name: backend
+          image: solvestack/backend:0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SOLVESTACK_DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: solvestack-config
+                  key: SOLVESTACK_DB_URL
+            - name: SOLVESTACK_DB_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: solvestack-config
+                  key: SOLVESTACK_DB_USERNAME
+            - name: SOLVESTACK_SESSION_COOKIE_SECURE
+              valueFrom:
+                configMapKeyRef:
+                  name: solvestack-config
+                  key: SOLVESTACK_SESSION_COOKIE_SECURE
+            - name: SPRING_CONFIG_IMPORT
+              value: configtree:/run/secrets/
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:MaxRAMPercentage=60"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          startupProbe:
+            httpGet:
+              path: /livez
+              port: http
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: http
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+          volumeMounts:
+            - name: credentials
+              mountPath: /run/secrets
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: credentials
+          secret:
+            secretName: solvestack-db
+            items:
+              - key: SOLVESTACK_DB_PASSWORD
+                path: SOLVESTACK_DB_PASSWORD
+        - name: tmp
+          emptyDir: {}

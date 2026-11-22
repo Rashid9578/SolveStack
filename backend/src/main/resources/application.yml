@@ -1,6 +1,8 @@
 spring:
   application:
     name: SolveStack
+  lifecycle:
+    timeout-per-shutdown-phase: 25s
   datasource:
     url: ${SOLVESTACK_DB_URL}
     username: ${SOLVESTACK_DB_USERNAME}
@@ -23,6 +25,21 @@ solvestack:
   session:
     cookie-secure: ${SOLVESTACK_SESSION_COOKIE_SECURE:true}
 server:
+  shutdown: graceful
   error:
     include-message: never
     include-stacktrace: never
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+        add-additional-paths: true
+      group:
+        readiness:
+          include: readinessState,db

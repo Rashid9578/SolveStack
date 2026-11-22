@@ -40,6 +40,7 @@ public class SecurityConfig {
                                 writeError(json, response, HttpStatus.FORBIDDEN, "The request could not be authorized.")))
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/livez", "/readyz").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/topics", "/api/topics/*").permitAll()
                         .requestMatchers(HttpMethod.HEAD, "/api/topics", "/api/topics/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/session", "/api/session/csrf").permitAll()

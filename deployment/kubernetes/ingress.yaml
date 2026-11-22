@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: solvestack
+spec:
+  tls:
+    - hosts:
+        - solvestack.example.com
+      secretName: solvestack-tls
+  rules:
+    - host: solvestack.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  name: http

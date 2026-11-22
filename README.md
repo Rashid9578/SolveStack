@@ -76,3 +76,7 @@ Each progress object has `completedProblems`, `totalProblems`, `percentage`, and
 Run `mvn -f backend/pom.xml test` for the catalog API tests. To include catalog, session, and tracking integration tests, point the database variables at a dedicated test database and set `SOLVESTACK_POSTGRES_TEST=true` before running Maven. Flyway applies the same schema and seed used by the application.
 
 Run `npm test` from `frontend/` to build the production bundle and run the React workflow tests. These tests use a local API fixture and require no database.
+
+## Deployment
+
+Use the [deployment guide](docs/deployment.md) to start the Docker Compose stack or deploy the Kubernetes manifests. The guide covers credentials, persistent storage, TLS, and smoke tests.
