@@ -1,3 +1,4 @@
+
 package com.solvestack.config;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,12 +13,17 @@ import org.springframework.session.web.http.DefaultCookieSerializer;
 @Configuration
 public class SessionCookieConfig {
     public static final Duration GUEST_LIFETIME = Duration.ofDays(365);
-    public static final String PERSIST_GUEST_COOKIE = SessionCookieConfig.class.getName() + ".persistGuest";
+    public static final String PERSIST_GUEST_COOKIE =
+            SessionCookieConfig.class.getName() + ".persistGuest";
 
     @Bean
-    CookieSerializer sessionCookieSerializer(@Value("${solvestack.session.cookie-secure}") boolean secure) {
-        DefaultCookieSerializer browserSession = cookie(secure);
-        DefaultCookieSerializer guestSession = cookie(secure);
+    CookieSerializer sessionCookieSerializer(
+            @Value("${solvestack.session.cookie-secure}") boolean secure,
+            @Value("${solvestack.session.cookie-same-site:Lax}") String sameSite) {
+
+        DefaultCookieSerializer browserSession = cookie(secure, sameSite);
+        DefaultCookieSerializer guestSession = cookie(secure, sameSite);
+
         guestSession.setCookieMaxAge(Math.toIntExact(GUEST_LIFETIME.toSeconds()));
 
         return new CookieSerializer() {
@@ -28,19 +34,22 @@ public class SessionCookieConfig {
 
             @Override
             public void writeCookieValue(CookieValue cookieValue) {
-                boolean persistGuest = Boolean.TRUE.equals(cookieValue.getRequest().getAttribute(PERSIST_GUEST_COOKIE));
-                (persistGuest ? guestSession : browserSession).writeCookieValue(cookieValue);
+                boolean persistGuest = Boolean.TRUE.equals(
+                        cookieValue.getRequest().getAttribute(PERSIST_GUEST_COOKIE));
+
+                (persistGuest ? guestSession : browserSession)
+                        .writeCookieValue(cookieValue);
             }
         };
     }
 
-    private static DefaultCookieSerializer cookie(boolean secure) {
+    private static DefaultCookieSerializer cookie(boolean secure, String sameSite) {
         DefaultCookieSerializer serializer = new DefaultCookieSerializer();
         serializer.setCookieName("SOLVESTACK_SESSION");
         serializer.setCookiePath("/");
         serializer.setUseHttpOnlyCookie(true);
         serializer.setUseSecureCookie(secure);
-        serializer.setSameSite("Lax");
+        serializer.setSameSite(sameSite);
         return serializer;
     }
 }
